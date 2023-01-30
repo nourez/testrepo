@@ -6,6 +6,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-20.04
+    container:
+      # NOTE: If you change the swiftlint container version here you should also change it in the Podfile and CD pipeline
+      image: ghcr.io/realm/swiftlint:0.46.2
+      
     steps:
     - name: Get Github action IP
       id: ip
@@ -15,4 +19,6 @@ jobs:
       uses: unfor19/install-aws-cli-action@master
       with:
         version: 2
+        
+    
     
