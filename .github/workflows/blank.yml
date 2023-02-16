@@ -6,19 +6,33 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-20.04
-    container:
-      # NOTE: If you change the swiftlint container version here you should also change it in the Podfile and CD pipeline
-      image: ghcr.io/realm/swiftlint:0.46.2
-      
     steps:
     - name: Get Github action IP
       id: ip
       uses: haythem/public-ip@v1.3
-    
-    - name: Install AWS CLI
-      uses: unfor19/install-aws-cli-action@master
-      with:
-        version: 2
+
+    - name: Setting environment variables..
+      run: |
+        echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
+        echo "AWS_SG_ID=sg-031fda7229b642c5e" >> $GITHUB_ENV
         
-    
-    
+    - name: Add Github Actions IP to Security group
+      run: |
+        aws ec2 authorize-security-group-ingress --group-id ${{ env.AWS_SG_ID }} --protocol tcp --port 443 --cidr ${{ steps.ip.outputs.ipv4 }}/32    
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
+        
+    - name: Sleep for 180 seconds
+      run: sleep 180s
+      shell: bash
+              
+    - name: Remove Github Actions IP from security group
+      run: |
+        aws ec2 revoke-security-group-ingress --group-id ${{ env.AWS_SG_ID }} --protocol tcp --port 443 --cidr ${{ steps.ip.outputs.ipv4 }}/32
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
+      if: always()
